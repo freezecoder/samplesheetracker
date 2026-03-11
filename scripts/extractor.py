@@ -419,7 +419,11 @@ def main(argv=None):
             dest = pathlib.Path(args.out_file) if args.out_file else \
                    pathlib.Path(args.out_dir) / f"output.{ext}"
             print("Exporting [Excel workbook] ...")
-            _save_excel(tables, dest)
+            all_tables = [
+                ("E.1. Table 5", "e1_table5", e1_df),
+                ("H.1 Manifest", "manifest", manifest_df),
+            ]
+            _save_excel(all_tables, dest)
         else:
             for label, stem, df in tables:
                 if args.out_file:
