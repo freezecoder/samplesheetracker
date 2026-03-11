@@ -400,7 +400,7 @@ def main(argv=None):
         return
 
     # ---- validate --out-file usage ------------------------------------
-    if args.out_file and args.show == "both":
+    if args.out_file and args.show == "both" and args.format != "excel":
         parser.error("--out-file requires --show e1 or --show manifest (not 'both')")
 
     tables = []
