@@ -205,7 +205,7 @@ def extract(
 # output helpers
 # ---------------------------------------------------------------------------
 
-_FORMATS = ("table", "csv", "tsv", "json", "markdown")
+_FORMATS = ("table", "csv", "tsv", "json", "markdown", "excel")
 
 
 def _render(df: pd.DataFrame, fmt: str, max_rows: Optional[int]) -> str:
@@ -238,6 +238,16 @@ def _save(df: pd.DataFrame, path: pathlib.Path, fmt: str) -> None:
     print(f"  Saved → {path}")
 
 
+def _save_excel(tables: list, path: pathlib.Path) -> None:
+    """Write multiple (label, df) pairs as sheets in a single Excel workbook."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        for label, _, df in tables:
+            sheet_name = label[:31]  # Excel sheet names max 31 chars
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+    print(f"  Saved → {path}")
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -263,6 +273,10 @@ examples:
 
   # export both tables as CSV files into ./output/
   python extractor.py report.xlsm --out-dir ./output --format csv
+
+  # export both tables into a single Excel workbook
+  python extractor.py report.xlsm --out-dir ./output --format excel
+  python extractor.py report.xlsm --out-file results.xlsx --format excel
 
   # custom sheet names and table label
   python extractor.py report.xlsm \\
@@ -398,16 +412,22 @@ def main(argv=None):
     # ---- save to files -------------------------------------------------
     if args.out_dir or args.out_file:
         ext_map = {"table": "txt", "csv": "csv", "tsv": "tsv",
-                   "json": "json", "markdown": "md"}
+                   "json": "json", "markdown": "md", "excel": "xlsx"}
         ext = ext_map[args.format]
 
-        for label, stem, df in tables:
-            if args.out_file:
-                dest = pathlib.Path(args.out_file)
-            else:
-                dest = pathlib.Path(args.out_dir) / f"{stem}.{ext}"
-            print(f"Exporting [{label}] ...")
-            _save(df, dest, args.format)
+        if args.format == "excel":
+            dest = pathlib.Path(args.out_file) if args.out_file else \
+                   pathlib.Path(args.out_dir) / f"output.{ext}"
+            print("Exporting [Excel workbook] ...")
+            _save_excel(tables, dest)
+        else:
+            for label, stem, df in tables:
+                if args.out_file:
+                    dest = pathlib.Path(args.out_file)
+                else:
+                    dest = pathlib.Path(args.out_dir) / f"{stem}.{ext}"
+                print(f"Exporting [{label}] ...")
+                _save(df, dest, args.format)
         return
 
     # ---- print to stdout -----------------------------------------------
